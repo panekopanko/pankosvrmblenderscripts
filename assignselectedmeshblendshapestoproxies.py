@@ -1,206 +1,186 @@
 import bpy
 
+# ------------------------------------------------------------
 # All 52 ARKit blendshapes
+# ------------------------------------------------------------
+
 ARKIT_BLENDSHAPES = [
-    # Eye blendshapes (14)
-    "eyeBlinkLeft",
-    "eyeLookDownLeft",
-    "eyeLookInLeft",
-    "eyeLookOutLeft",
-    "eyeLookUpLeft",
-    "eyeSquintLeft",
-    "eyeWideLeft",
-    "eyeBlinkRight",
-    "eyeLookDownRight",
-    "eyeLookInRight",
-    "eyeLookOutRight",
-    "eyeLookUpRight",
-    "eyeSquintRight",
-    "eyeWideRight",
+    # Eyes
+    "eyeBlinkLeft", "eyeLookDownLeft", "eyeLookInLeft", "eyeLookOutLeft",
+    "eyeLookUpLeft", "eyeSquintLeft", "eyeWideLeft",
+    "eyeBlinkRight", "eyeLookDownRight", "eyeLookInRight", "eyeLookOutRight",
+    "eyeLookUpRight", "eyeSquintRight", "eyeWideRight",
 
-    # Jaw blendshapes (4)
-    "jawForward",
-    "jawLeft",
-    "jawRight",
-    "jawOpen",
+    # Jaw
+    "jawForward", "jawLeft", "jawRight", "jawOpen",
 
-    # Mouth blendshapes (23)
-    "mouthClose",
-    "mouthFunnel",
-    "mouthPucker",
-    "mouthLeft",
-    "mouthRight",
-    "mouthSmileLeft",
-    "mouthSmileRight",
-    "mouthFrownLeft",
-    "mouthFrownRight",
-    "mouthDimpleLeft",
-    "mouthDimpleRight",
-    "mouthStretchLeft",
-    "mouthStretchRight",
-    "mouthRollLower",
-    "mouthRollUpper",
-    "mouthShrugLower",
-    "mouthShrugUpper",
-    "mouthPressLeft",
-    "mouthPressRight",
-    "mouthLowerDownLeft",
-    "mouthLowerDownRight",
-    "mouthUpperUpLeft",
-    "mouthUpperUpRight",
+    # Mouth
+    "mouthClose", "mouthFunnel", "mouthPucker", "mouthLeft", "mouthRight",
+    "mouthSmileLeft", "mouthSmileRight",
+    "mouthFrownLeft", "mouthFrownRight",
+    "mouthDimpleLeft", "mouthDimpleRight",
+    "mouthStretchLeft", "mouthStretchRight",
+    "mouthRollLower", "mouthRollUpper",
+    "mouthShrugLower", "mouthShrugUpper",
+    "mouthPressLeft", "mouthPressRight",
+    "mouthLowerDownLeft", "mouthLowerDownRight",
+    "mouthUpperUpLeft", "mouthUpperUpRight",
 
-    # Brow blendshapes (5)
-    "browDownLeft",
-    "browDownRight",
-    "browInnerUp",
-    "browOuterUpLeft",
-    "browOuterUpRight",
+    # Brows
+    "browDownLeft", "browDownRight", "browInnerUp",
+    "browOuterUpLeft", "browOuterUpRight",
 
-    # Cheek blendshapes (3)
-    "cheekPuff",
-    "cheekSquintLeft",
-    "cheekSquintRight",
+    # Cheeks
+    "cheekPuff", "cheekSquintLeft", "cheekSquintRight",
 
-    # Nose blendshapes (2)
-    "noseSneerLeft",
-    "noseSneerRight",
+    # Nose
+    "noseSneerLeft", "noseSneerRight",
 
-    # Tongue blendshape (1)
-    "tongueOut"
+    # Tongue
+    "tongueOut",
 ]
+
+
+# ------------------------------------------------------------
+# Main Function
+# ------------------------------------------------------------
 
 def assign_arkit_morph_binds_selected():
     """
-    Assigns all ARKit shape keys to their corresponding VRM custom expressions.
-    Only works on the SELECTED mesh object.
-    Uses the VRM operator to add morph target binds, then sets the shape key index.
+    Blender 5.0 compatible
+
+    Assign ARKit shape keys from the ACTIVE mesh
+    to matching VRM 1.0 custom expressions.
 
     Assumes:
-    - Armature named "Armature" with VRM extension
-    - Custom expressions already created with matching ARKit names
-    - A mesh with ARKit shape keys is SELECTED
+    - Active object is a mesh with ARKit shape keys
+    - An armature object named "Armature"
+    - VRM 1.0 addon installed
+    - Custom expressions already created with ARKit names
     """
 
-    # Get the selected object
+    # --------------------------------------------------------
+    # Validate selected mesh
+    # --------------------------------------------------------
+
     mesh_obj = bpy.context.active_object
     if not mesh_obj or mesh_obj.type != 'MESH':
-        print("ERROR: No mesh selected! Select a mesh object first.")
+        print("ERROR: Active object must be a mesh")
         return
 
     if not mesh_obj.data.shape_keys:
-        print(f"ERROR: Selected mesh '{mesh_obj.name}' has no shape keys!")
+        print(f"ERROR: Mesh '{mesh_obj.name}' has no shape keys")
         return
 
     shape_keys = mesh_obj.data.shape_keys.key_blocks
 
-    print(f"Working on selected mesh: '{mesh_obj.name}'")
+    print(f"Using mesh: {mesh_obj.name}")
 
-    # Get the armature
-    armature = bpy.data.armatures.get("Armature")
-    if not armature:
-        print("ERROR: No armature named 'Armature' found!")
+    # --------------------------------------------------------
+    # Find armature object (preferred in Blender 5.0)
+    # --------------------------------------------------------
+
+    armature_obj = bpy.data.objects.get("Armature")
+    if not armature_obj or armature_obj.type != 'ARMATURE':
+        print("ERROR: Armature object named 'Armature' not found")
         return
 
-    # Check VRM extension
-    if not hasattr(armature, "vrm_addon_extension"):
-        print("ERROR: VRM addon not found on armature!")
+    armature_data = armature_obj.data
+
+    # --------------------------------------------------------
+    # VRM 1.0 validation
+    # --------------------------------------------------------
+
+    if not hasattr(armature_data, "vrm_addon_extension"):
+        print("ERROR: VRM addon not found on armature")
         return
 
-    vrm_extension = armature.vrm_addon_extension
+    vrm_ext = armature_data.vrm_addon_extension
 
-    if not hasattr(vrm_extension, "vrm1"):
-        print("ERROR: VRM 1.0 not found!")
+    if not hasattr(vrm_ext, "vrm1"):
+        print("ERROR: VRM 1.0 data not found")
         return
 
-    vrm1 = vrm_extension.vrm1
-    expressions = vrm1.expressions
+    expressions = vrm_ext.vrm1.expressions
 
-    # Find the armature object (not just the armature data)
-    armature_obj = None
-    for obj in bpy.data.objects:
-        if obj.type == 'ARMATURE' and obj.data == armature:
-            armature_obj = obj
-            break
+    # --------------------------------------------------------
+    # Assignment loop
+    # --------------------------------------------------------
 
-    if not armature_obj:
-        print("ERROR: No armature object found!")
-        return
+    assigned = 0
+    skipped = 0
 
-    # Track statistics
-    assigned_count = 0
-    skipped_count = 0
+    print("\n" + "=" * 60)
+    print("Assigning ARKit Shape Keys → VRM 1.0 Expressions")
+    print("=" * 60)
 
-    print("\n" + "="*60)
-    print("Assigning ARKit Shape Keys to VRM Expression Binds")
-    print(f"Target Mesh: '{mesh_obj.name}'")
-    print("="*60)
-
-    # Process each ARKit blendshape
     for arkit_name in ARKIT_BLENDSHAPES:
-        # Check if shape key exists on selected mesh
+
+        # Shape key check
         if arkit_name not in shape_keys:
-            print(f"SKIP: Shape key '{arkit_name}' not found on '{mesh_obj.name}'")
-            skipped_count += 1
+            print(f"SKIP: Missing shape key '{arkit_name}'")
+            skipped += 1
             continue
 
         # Find matching custom expression
-        expression_found = None
-        for custom in expressions.custom:
-            if custom.custom_name == arkit_name:
-                expression_found = custom
-                break
+        expression = next(
+            (e for e in expressions.custom if e.custom_name == arkit_name),
+            None
+        )
 
-        if not expression_found:
-            print(f"SKIP: Custom expression '{arkit_name}' not found")
-            skipped_count += 1
+        if not expression:
+            print(f"SKIP: Missing custom expression '{arkit_name}'")
+            skipped += 1
             continue
 
-        # Check if bind already exists for this mesh
-        already_assigned = False
-        for existing_bind in expression_found.morph_target_binds:
-            if existing_bind.node.bpy_object == mesh_obj and existing_bind.index == arkit_name:
-                already_assigned = True
-                break
-
-        if already_assigned:
-            print(f"SKIP: '{arkit_name}' already assigned to '{mesh_obj.name}'")
-            skipped_count += 1
+        # Prevent duplicate binds
+        if any(
+            b.node.bpy_object == mesh_obj and b.index == arkit_name
+            for b in expression.morph_target_binds
+        ):
+            print(f"SKIP: Already assigned '{arkit_name}'")
+            skipped += 1
             continue
 
-        # Add morph target bind using VRM operator
+        # ----------------------------------------------------
+        # Add bind via VRM operator
+        # ----------------------------------------------------
+
         try:
             bpy.ops.vrm.add_vrm1_expression_morph_target_bind(
                 armature_object_name=armature_obj.name,
-                expression_name=arkit_name
+                expression_name=arkit_name,
             )
 
-            # Get the newly added bind (should be the last one)
-            if len(expression_found.morph_target_binds) > 0:
-                new_bind = expression_found.morph_target_binds[-1]
+            bind = expression.morph_target_binds[-1]
+            bind.node.bpy_object = mesh_obj
+            bind.index = arkit_name
 
-                # Set the mesh object and shape key index
-                new_bind.node.bpy_object = mesh_obj
-                new_bind.index = arkit_name
+            print(f"ASSIGNED: {arkit_name}")
+            assigned += 1
 
-                print(f"ASSIGNED: '{arkit_name}' -> '{mesh_obj.name}'.'{arkit_name}'")
-                assigned_count += 1
-            else:
-                print(f"ERROR: Failed to create bind for '{arkit_name}'")
-                skipped_count += 1
+        except Exception as exc:
+            print(f"ERROR: {arkit_name} → {exc}")
+            skipped += 1
 
-        except Exception as e:
-            print(f"ERROR: Failed to assign '{arkit_name}': {e}")
-            skipped_count += 1
+    # --------------------------------------------------------
+    # Summary
+    # --------------------------------------------------------
 
-    print("\n" + "="*60)
-    print("Morph Target Bind Assignment Complete!")
-    print(f"Mesh: '{mesh_obj.name}'")
-    print(f"Armature: '{armature_obj.name}'")
-    print(f"Shape keys assigned: {assigned_count}")
-    print(f"Skipped: {skipped_count}")
+    print("\n" + "=" * 60)
+    print("Completed")
+    print(f"Mesh: {mesh_obj.name}")
+    print(f"Armature: {armature_obj.name}")
+    print(f"Assigned: {assigned}")
+    print(f"Skipped: {skipped}")
     print(f"Total ARKit shapes: {len(ARKIT_BLENDSHAPES)}")
-    print("="*60)
+    print("=" * 60)
 
-# Run the script
+
+# ------------------------------------------------------------
+# Run
+# ------------------------------------------------------------
+
 if __name__ == "__main__":
     assign_arkit_morph_binds_selected()
+

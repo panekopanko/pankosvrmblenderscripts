@@ -1,0 +1,28 @@
+import bpy
+
+obj = bpy.context.active_object
+
+if not obj or obj.type != 'MESH':
+    raise Exception("Select a mesh object.")
+
+# Find armature modifier
+armature_obj = None
+for mod in obj.modifiers:
+    if mod.type == 'ARMATURE' and mod.object:
+        armature_obj = mod.object
+        break
+
+if not armature_obj:
+    raise Exception("No valid Armature modifier found.")
+
+# Collect bone names
+bone_names = {bone.name for bone in armature_obj.data.bones}
+
+# Remove vertex groups not matching bones
+removed_count = 0
+for vg in list(obj.vertex_groups):
+    if vg.name not in bone_names:
+        obj.vertex_groups.remove(vg)
+        removed_count += 1
+
+print(f"Removed {removed_count} vertex groups not linked to bones.")

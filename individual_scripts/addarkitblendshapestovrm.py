@@ -76,31 +76,32 @@ def add_arkit_to_vrm_expressions():
     This mimics clicking "Add Custom Expression" in the VRM plugin UI.
 
     Assumes:
-    - An armature named "Armature" exists with VRM extension
+    - Any armature with a VRM 1.0 extension exists in the scene
     - VRM addon is installed and enabled
     - A mesh with ARKit shape keys exists
     """
 
-    # Get the armature
-    armature = bpy.data.armatures.get("Armature")
-    if not armature:
-        print("ERROR: No armature named 'Armature' found!")
+    # Find any armature with a VRM 1.0 extension (don't rely on name "Armature")
+    armature_obj = None
+    vrm_extension = None
+    for obj in bpy.data.objects:
+        if obj.type != 'ARMATURE':
+            continue
+        arm = obj.data
+        if not hasattr(arm, "vrm_addon_extension"):
+            continue
+        ext = arm.vrm_addon_extension
+        if not hasattr(ext, "vrm1"):
+            continue
+        armature_obj = obj
+        vrm_extension = ext
+        break
+
+    if not armature_obj:
+        print("ERROR: No armature with VRM 1.0 extension found!")
         return
 
-    # Check if VRM addon extension exists
-    if not hasattr(armature, "vrm_addon_extension"):
-        print("ERROR: VRM addon not found or not enabled on armature!")
-        return
-
-    vrm_extension = armature.vrm_addon_extension
-
-    # Check if VRM 1.0 is being used
-    if not hasattr(vrm_extension, "vrm1"):
-        print("ERROR: VRM 1.0 not found! Make sure you're using VRM 1.0 format.")
-        return
-
-    vrm1 = vrm_extension.vrm1
-    expressions = vrm1.expressions
+    expressions = vrm_extension.vrm1.expressions
 
     # Find mesh object with shape keys (don't require selection)
     mesh_obj = None
@@ -149,7 +150,7 @@ def add_arkit_to_vrm_expressions():
             # Add morph target bind (link to the shape key)
             new_bind = new_custom.morph_target_binds.add()
             new_bind.node.mesh_object_name = mesh_obj.name
-            new_bind.index = str(shape_keys.find(arkit_name))
+            new_bind.index = arkit_name
             new_bind.weight = 1.0
 
             print(f"CREATED: '{arkit_name}'")
